@@ -1,3 +1,4 @@
+import argparse
 import os
 import re
 import urllib.request
@@ -50,7 +51,8 @@ def download_video_fragments(video_links: str, prefix: str):
         extension = video_link.split(".")[-1]
         out_path = file_path_i.format(number=number, extension=extension)
 
-        # urllib.request.urlretrieve(video_link, out_path)
+        if not os.path.exists(out_path):
+            urllib.request.urlretrieve(video_link, out_path)
         if out_path in audio_file_paths or out_path in video_file_paths:
             print("DUPLICATE: ", out_path)
             continue
@@ -95,7 +97,8 @@ def separate_audio_concat(prefix: str, video_file_paths: list, audio_file_paths:
         subprocess.call(command)
         mp4_fragment_paths.append(temp_fragment_path)
 
-    integrated_audio_concat(temp_dir_path, mp4_fragment_paths, output_path="final.mp4")
+    output_path = os.path.join(prefix, f"{prefix}.mp4")
+    integrated_audio_concat(temp_dir_path, mp4_fragment_paths, output_path=output_path)
 
     shutil.rmtree(temp_dir_path)
 
@@ -108,10 +111,26 @@ def fragment_concat(prefix: str, video_file_paths: List[str], audio_file_paths: 
         separate_audio_concat(prefix, video_file_paths, audio_file_paths)
 
 
+def get_inputs():
+    """"""
+    parser = argparse.ArgumentParser(description='Download video using .har file')
+    parser.add_argument('--har', dest='har_path', action='store', help="path to .har file", required=True)
+    parser.add_argument('--output', dest='output', action='store', default="",
+                        help="output name")
+    args = parser.parse_args()
+
+    assert os.path.exists(args.har_path), f"{args.har_path} not found."
+    assert not any(char in args.output for char in ".,=+()/?'|*&^%$#@!`"), f"invalid characters in {args.output}"
+
+    if args.output == "":
+        args.output = os.path.basename(args.har_path).rstrip(".har")
+
+    return args.har_path, args.output
+
 def main():
     """"""
-    har_path = "www.boardsbeyond.com.har"
-    prefix = "osteoarthritis_1"
+    # har_path = "www.boardsbeyond.com.har"
+    # prefix = "osteoarthritis_1"
 
     # har_path = "onlinemeded.org.har"
     # prefix = "female_pelvic_anatomy_2"
@@ -119,10 +138,10 @@ def main():
     # har_path = "test.har"
     # prefix = "pelvic_organ_prolapse"
 
+    har_path, prefix = get_inputs()
+
     video_links = get_video_links_from_har(har_path)
-
     audio_file_paths, video_file_paths = download_video_fragments(video_links, prefix)
-
     fragment_concat(prefix, video_file_paths, audio_file_paths)
 
 
