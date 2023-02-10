@@ -70,11 +70,13 @@ def integrated_audio_concat(prefix: str, video_file_paths: list, output_path: st
     file_list_path = f"{prefix}/files.txt"
     with open(file_list_path, 'w') as file:
         for path in video_file_paths:
-            path = path.split('\\')[-1]
+            path = "\\".join(path.split('\\')[1:])
             file.write(f"file '{path}'\n")
+            break
 
     if not output_path:
         output_path = f"{prefix}/output.mp4"
+
     subprocess.call(f"ffmpeg -safe 0 -hide_banner -loglevel error -f concat -i {file_list_path} -c copy {output_path}")
     return
 
